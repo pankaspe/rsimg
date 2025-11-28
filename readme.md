@@ -2,7 +2,7 @@
 
 **Rust-powered parallel image optimizer.** Resize and convert images to multiple formats with real-time progress visualization.
 
-![RS img](./screenshot)
+![RS img](screenshot.png)
 
 ## ✨ Features
 

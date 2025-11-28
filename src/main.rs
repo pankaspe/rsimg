@@ -1,3 +1,8 @@
+// src/main.rs
+//
+// Main entry point for RSIMG — a Rust-powered parallel image optimizer.
+// Handles argument parsing, validation, and orchestrates image processing.
+
 mod processor;
 
 use anyhow::{Context, Result};
@@ -7,6 +12,7 @@ use owo_colors::OwoColorize;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
+// CLI arguments structure using clap
 #[derive(Parser)]
 #[command(
     name = "rsimg",
@@ -74,12 +80,13 @@ struct Args {
 }
 
 fn main() -> Result<()> {
+    // Parse CLI arguments
     let args = Args::parse();
 
-    // Clear screen
+    // Clear terminal screen
     print!("\x1B[2J\x1B[1;1H");
 
-    // Configure Rayon thread pool if specified
+    // Configure Rayon thread pool if user specified a thread count
     if let Some(threads) = args.threads {
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
@@ -87,20 +94,22 @@ fn main() -> Result<()> {
             .context("Failed to configure thread pool")?;
     }
 
+    // Print header with styling
     println!("{}", "\n=== RSIMG — Image Optimizer ===\n".bold().cyan());
 
-    // Validate quality
+    // Validate quality parameter
     if args.quality > 100 {
         anyhow::bail!("Quality must be between 0 and 100");
     }
 
-    // Validate scales (10-100)
+    // Validate scale percentages
     for scale in &args.scales {
         if *scale < 10 || *scale > 100 {
             anyhow::bail!("Scales must be between 10 and 100 ({}% is invalid)", scale);
         }
     }
 
+    // Collect all valid image files based on input path
     let files = collect_image_files(&args)?;
 
     if files.is_empty() {
@@ -108,7 +117,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    // Create output directory if specified
+    // Create output directory if user specified one
     if let Some(ref output_dir) = args.output {
         std::fs::create_dir_all(output_dir).with_context(|| {
             format!(
@@ -118,8 +127,9 @@ fn main() -> Result<()> {
         })?;
     }
 
-    let total_files = files.len(); // Salva il numero prima di muovere files
+    let total_files = files.len(); // Save total number of files for later display
 
+    // Print summary of files found
     println!(
         "  {} {} {}",
         "📁".bright_blue(),
@@ -127,6 +137,7 @@ fn main() -> Result<()> {
         format!("{} images", total_files).bright_cyan().bold()
     );
 
+    // Display output directory info if specified
     if let Some(ref output_dir) = args.output {
         println!(
             "  {} Output: {}/",
@@ -135,6 +146,7 @@ fn main() -> Result<()> {
         );
     }
 
+    // Display formats, scales, and quality settings
     println!(
         "  {} Formats: {} | Scales: {} | Quality: {}",
         "⚙️ ".bright_white(),
@@ -148,7 +160,7 @@ fn main() -> Result<()> {
         format!("{}%", args.quality).bright_yellow()
     );
 
-    // Mostra numero di threads
+    // Display number of threads in use
     let num_threads = rayon::current_num_threads();
     println!(
         "  {} Using {} {}",
@@ -162,10 +174,12 @@ fn main() -> Result<()> {
         .dimmed()
     );
 
-    println!(); // Riga vuota
+    println!(); // Empty line for spacing
 
+    // Create multi-progress bar for concurrent image processing
     let mp = create_multi_progress();
 
+    // Process all images through processor module
     processor::process_all(
         files,
         &args.formats,
@@ -175,6 +189,7 @@ fn main() -> Result<()> {
         &mp,
     )?;
 
+    // Print success message
     println!(
         "\n  {} {}",
         "✓".green().bold(),
@@ -190,6 +205,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+// Collect all image files from input path
 fn collect_image_files(args: &Args) -> Result<Vec<PathBuf>> {
     const VALID_EXTENSIONS: &[&str] = &[
         "jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif", "ico",
@@ -201,11 +217,11 @@ fn collect_image_files(args: &Args) -> Result<Vec<PathBuf>> {
     }
 
     if args.input.is_file() {
-        // Singolo file
+        // Single file input
         validate_image_file(&args.input, VALID_EXTENSIONS)?;
         files.push(args.input.clone());
     } else if args.input.is_dir() {
-        // Directory
+        // Directory input (recursively if specified)
         let walker = if args.recursive {
             WalkDir::new(&args.input)
         } else {
@@ -233,6 +249,7 @@ fn collect_image_files(args: &Args) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+// Validate that a file has a supported image extension
 fn validate_image_file(path: &PathBuf, valid_ext: &[&str]) -> Result<()> {
     if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
         if valid_ext.contains(&ext.to_lowercase().as_str()) {
@@ -242,6 +259,7 @@ fn validate_image_file(path: &PathBuf, valid_ext: &[&str]) -> Result<()> {
     anyhow::bail!("File '{}' is not a supported image format", path.display());
 }
 
+// Create a MultiProgress object for concurrent progress bars
 fn create_multi_progress() -> MultiProgress {
     MultiProgress::new()
 }

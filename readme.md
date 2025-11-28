@@ -2,6 +2,8 @@
 
 **Rust-powered parallel image optimizer.** Resize and convert images to multiple formats with real-time progress visualization.
 
+![RS img](./screenshot)
+
 ## ✨ Features
 
 - 🚀 Parallel processing with Rayon

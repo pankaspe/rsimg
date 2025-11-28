@@ -1,6 +1,9 @@
 # 🦀 RS img
 
-**Rust-powered parallel image optimizer.** Resize and convert images to multiple formats with real-time progress visualization.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+**Rust-powered parallel image optimizer.**  
+Resize and convert images to multiple formats with real-time progress visualization.
 
 ![RS img](screenshot.png)
 
